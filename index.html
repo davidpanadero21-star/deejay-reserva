@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Deejay Party</title>
+<meta name="theme-color" content="#3ccfc8">
+<style>
+  html,body{margin:0;height:100%;background:#3ccfc8;color:#24124f;font:700 18px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif}
+  main{min-height:100%;display:grid;place-items:center;text-align:center;padding:24px;box-sizing:border-box}
+  .caja{background:#fff8ec;border:4px solid #24124f;border-radius:22px;box-shadow:0 7px 0 #24124f;padding:26px 22px;max-width:420px;width:100%}
+  h1{margin:0 0 6px;font-size:28px}
+  .disco{width:64px;height:64px;margin:6px auto 14px;border-radius:50%;background:repeating-radial-gradient(circle,#24124f 0 3px,#3a2470 3px 6px);position:relative;animation:g 1.2s linear infinite}
+  .disco::after{content:"";position:absolute;inset:24px;border-radius:50%;background:#ff4fa3}
+  @keyframes g{to{transform:rotate(360deg)}}
+  small{display:block;margin-top:10px;font-weight:600;opacity:.75}
+  a{color:#24124f}
+</style></head>
+<body><main><div class="caja">
+  <div class="disco" aria-hidden="true"></div>
+  <h1>Deejay Party</h1>
+  <div id="msg">Conectando…</div>
+  <small id="sub"></small>
+</div></main>
+<script>
+// Enlace único: prueba la dirección de siempre (Cloudflare) y, si no responde (bloqueos de LaLiga en días de partido),
+// entra por la puerta de reserva (Render), que lleva al mismo juego.
+const PRINCIPAL = "https://deejay-party.deejayparty.workers.dev";
+const RESERVA = "https://deejay-reserva.onrender.com";
+const q = new URLSearchParams(location.search);
+const pagina = (q.get("p") || "").replace(/[^\w.\-\/]/g, "").replace(/^\/+/, "");
+q.delete("p");
+const destino = "/" + pagina + (q.toString() ? "?" + q.toString() : "");
+const $ = (id) => document.getElementById(id);
+// ¿responde? (no-cors: basta con que llegue; si está bloqueado, falla o no contesta a tiempo)
+const responde = (base, ms) => Promise.race([
+  fetch(base + "/brand/logo-900.webp?c=" + Date.now(), { mode: "no-cors", cache: "no-store" }).then(() => true, () => false),
+  new Promise((r) => setTimeout(() => r(false), ms)),
+]);
+(async () => {
+  responde(RESERVA, 1000);   // de paso, va despertando la reserva por si hiciera falta
+  if (await responde(PRINCIPAL, 4000)) return location.replace(PRINCIPAL + destino);
+  $("msg").textContent = "La conexión normal está bloqueada ahora mismo. Entrando por la reserva…";
+  $("sub").textContent = "La primera vez puede tardar hasta un minuto en despertar.";
+  for (let i = 0; i < 12; i++) {
+    if (await responde(RESERVA, 10000)) return location.replace(RESERVA + destino);
+    $("sub").textContent = "Despertando la reserva… (" + (i + 1) + ")";
+  }
+  $("msg").innerHTML = 'No se puede entrar ahora mismo. Prueba con los datos del móvil o en <a href="' + RESERVA + destino + '">este enlace</a>.';
+  $("sub").textContent = "";
+})();
+</script>
+</body></html>
