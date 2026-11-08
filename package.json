@@ -1,0 +1,10 @@
+{
+  "name": "deejay-reserva",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Puerta de reserva de Deejay Party (reenvía todo al juego de Cloudflare)",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" },
+  "dependencies": { "http-proxy": "1.18.1" }
+}
