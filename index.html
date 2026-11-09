@@ -22,10 +22,14 @@
 <script>
 // Enlace único: prueba la dirección de siempre (Cloudflare) y, si no responde (bloqueos de LaLiga en días de partido),
 // entra por la puerta de reserva (Render), que lleva al mismo juego.
-const PRINCIPAL = "https://deejay-party.deejayparty.workers.dev";
+// las dos direcciones de Cloudflare (se usa la que conteste primero)
+const PRINCIPALES = ["https://juego.djparty.site", "https://deejay-party.deejayparty.workers.dev"];
 const RESERVA = "https://deejay-reserva.onrender.com";
 const q = new URLSearchParams(location.search);
-const pagina = (q.get("p") || "").replace(/[^\w.\-\/]/g, "").replace(/^\/+/, "");
+// djparty.site/?sala=ABCD (invitación) y ?tv=ABCD (QR de una tele) van al mando; djparty.site/tv a la página de la tele
+let pagina = (q.get("p") || "").replace(/[^\w.\-\/]/g, "").replace(/^\/+/, "");
+if (!pagina && /^\/tv\/?$/.test(location.pathname)) pagina = "tv.html";
+if (!pagina && (q.has("sala") || q.has("tv"))) pagina = "mando.html";
 q.delete("p");
 const destino = "/" + pagina + (q.toString() ? "?" + q.toString() : "");
 const $ = (id) => document.getElementById(id);
@@ -36,7 +40,8 @@ const responde = (base, ms) => Promise.race([
 ]);
 (async () => {
   responde(RESERVA, 1000);   // de paso, va despertando la reserva por si hiciera falta
-  if (await responde(PRINCIPAL, 4000)) return location.replace(PRINCIPAL + destino);
+  const buena = await new Promise((r) => { let n = 0; for (const b of PRINCIPALES) responde(b, 4000).then((v) => { if (v) r(b); else if (++n === PRINCIPALES.length) r(null); }); });
+  if (buena) return location.replace(buena + destino);
   $("msg").textContent = "La conexión normal está bloqueada ahora mismo. Entrando por la reserva…";
   $("sub").textContent = "La primera vez puede tardar hasta un minuto en despertar.";
   for (let i = 0; i < 12; i++) {
